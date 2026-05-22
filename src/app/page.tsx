@@ -8,8 +8,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sun, 
-  Moon, 
   Trash2, 
   Image as ImageIcon, 
   FolderDown, 
@@ -25,6 +23,27 @@ import ImageList from './components/ImageList';
 import SideBySidePreview from './components/SideBySidePreview';
 
 import JSZip from 'jszip';
+
+function createImageItem(file: File, objectUrl: string, width: number, height: number): ImageItem {
+  return {
+    id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    name: file.name,
+    file: file,
+    originalType: file.type,
+    originalSize: file.size,
+    originalWidth: width,
+    originalHeight: height,
+    originalUrl: objectUrl,
+    compressedType: '',
+    compressedSize: null,
+    compressedWidth: null,
+    compressedHeight: null,
+    compressedUrl: null,
+    percentage: null,
+    status: 'idle',
+    errorMsg: null
+  };
+}
 
 export default function Home() {
   // Theme management: Default to dark, responsive toggle
@@ -59,12 +78,21 @@ export default function Home() {
   useEffect(() => {
     // Read theme preference from localStorage on mount
     const stored = localStorage.getItem('theme');
-    if (stored) {
-      setDarkMode(stored === 'dark');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = stored ? stored === 'dark' : systemPrefersDark;
+
+    // Apply the class directly to prevent a visual flash
+    const root = window.document.documentElement;
+    if (prefersDark) {
+      root.classList.add('dark');
     } else {
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setDarkMode(systemPrefersDark);
+      root.classList.remove('dark');
     }
+
+    // Defer React state update to the next tick to prevent cascading render warning on mount
+    setTimeout(() => {
+      setDarkMode(prefersDark);
+    }, 0);
   }, []);
 
   useEffect(() => {
@@ -100,28 +128,11 @@ export default function Home() {
         });
         width = dummyImg.naturalWidth || dummyImg.width;
         height = dummyImg.naturalHeight || dummyImg.height;
-      } catch (e) {
+      } catch {
         console.warn("Could not determine image dimensions size, falling back to basic bounds.");
       }
 
-      const item: ImageItem = {
-        id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        name: file.name,
-        file: file,
-        originalType: file.type,
-        originalSize: file.size,
-        originalWidth: width,
-        originalHeight: height,
-        originalUrl: objectUrl,
-        compressedType: '',
-        compressedSize: null,
-        compressedWidth: null,
-        compressedHeight: null,
-        compressedUrl: null,
-        percentage: null,
-        status: 'idle',
-        errorMsg: null
-      };
+      const item = createImageItem(file, objectUrl, width, height);
 
       newItems.push(item);
     }
@@ -179,13 +190,14 @@ export default function Home() {
         }
         return img;
       }));
-    } catch (err: any) {
+    } catch (err) {
       console.error("Compression error:", err);
+      const errMessage = err instanceof Error ? err.message : "Failed to parse image format.";
       setImages(prev => prev.map(img => 
         img.id === id ? { 
           ...img, 
           status: 'error', 
-          errorMsg: err.message || "Failed to parse image format." 
+          errorMsg: errMessage 
         } : img
       ));
     }
@@ -353,8 +365,11 @@ export default function Home() {
           {/* Main workspace header layout */}
           <div id="workspace-queue" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-900 pb-5">
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 Workspace Queue
+                {isProcessingBatch && (
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+                )}
               </h1>
               <p className="text-xs text-slate-450 dark:text-slate-500 mt-1">
                 Optimized images will replace your targets inside the local heap file lists below.
@@ -449,7 +464,7 @@ export default function Home() {
                   <button
                     id="compile-zip-btn"
                     onClick={handleDownloadAllAsZip}
-                    disabled={images.filter(img => img.status === 'completed').length === 0}
+                    disabled={isProcessingBatch || images.filter(img => img.status === 'completed').length === 0}
                     className="px-3.5 py-1.5 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 disabled:opacity-35 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs select-none transition-all duration-150"
                   >
                     <FolderDown className="w-3.5 h-3.5" />
@@ -459,6 +474,7 @@ export default function Home() {
                   <button
                     id="clear-all-workspace-btn"
                     onClick={handleClearAll}
+                    disabled={isProcessingBatch}
                     className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-550 dark:text-slate-405 hover:text-red-500/90 dark:hover:text-red-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-150"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

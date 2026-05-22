@@ -25,7 +25,7 @@ export default function ControlPanel({ settings, onChange, onApplyToAll, hasImag
   const handleResizeModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange({
       ...settings,
-      resizeMode: e.target.value as any
+      resizeMode: e.target.value as CompressionSettings['resizeMode']
     });
   };
 
@@ -146,7 +146,7 @@ export default function ControlPanel({ settings, onChange, onApplyToAll, hasImag
               if (e.target.value === 'auto') {
                 onChange({ ...settings, autoFormat: true });
               } else {
-                onChange({ ...settings, autoFormat: false, format: e.target.value as any });
+                onChange({ ...settings, autoFormat: false, format: e.target.value as CompressionSettings['format'] });
               }
             }}
             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-slate-800/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"

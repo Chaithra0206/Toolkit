@@ -115,7 +115,8 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
     return () => {
       window.removeEventListener('paste', handlePaste);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onFilesSelected]);
 
   return (
     <div className="w-full">

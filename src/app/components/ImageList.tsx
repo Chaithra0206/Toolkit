@@ -7,7 +7,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImageItem } from '../types';
 import { formatBytes } from '../utils/compressor';
-import { Trash2, Download, Eye, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Trash2, Download, Eye, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface ImageListProps {
   images: ImageItem[];

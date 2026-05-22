@@ -58,7 +58,7 @@ export async function compressImage(
       if (lowerName.endsWith('.heic') || lowerName.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif') {
         try {
           activeBlob = await convertHeicToJpeg(file);
-        } catch (heicError) {
+        } catch {
           reject(new Error('Failed to convert HEIC format. Ensure the image is valid.'));
           return;
         }
