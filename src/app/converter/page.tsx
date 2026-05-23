@@ -9,19 +9,24 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trash2, 
-  Image as ImageIcon, 
+  RefreshCw, 
   FolderDown, 
-  Play
+  Play,
+  CheckCircle,
+  Sparkles
 } from 'lucide-react';
 
-import { ImageItem, CompressionSettings } from './types';
-import { compressImage, formatBytes } from './utils/compressor';
-import DropZone from './components/DropZone';
-import ImageList from './components/ImageList';
-import SideBySidePreview from './components/SideBySidePreview';
-import { useApp } from './context/AppContext';
+import { ImageItem, CompressionSettings } from '../types';
+import { compressImage, formatBytes } from '../utils/compressor';
+import DropZone from '../components/DropZone';
+import ConverterControl from '../components/ConverterControl';
+import ImageList from '../components/ImageList';
+import SideBySidePreview from '../components/SideBySidePreview';
+import { useApp } from '../context/AppContext';
 
 import JSZip from 'jszip';
+
+type TargetFormat = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif';
 
 function createImageItem(file: File, objectUrl: string, width: number, height: number): ImageItem {
   return {
@@ -44,22 +49,11 @@ function createImageItem(file: File, objectUrl: string, width: number, height: n
   };
 }
 
-export default function Home() {
+export default function ConverterPage() {
   const { addProcessedStat } = useApp();
 
-  // Internal default compression settings (80% quality, original format & size)
-  const [settings] = useState<CompressionSettings>({
-    quality: 0.8,
-    format: 'original',
-    resizeMode: 'none',
-    resizeValue: 100,
-    resizeWidth: 1024,
-    resizeHeight: 768,
-    lossless: false,
-    preserveMetadata: true,
-    autoFormat: false
-  });
-
+  // Target Conversion Format (defaults to WebP)
+  const [targetFormat, setTargetFormat] = useState<TargetFormat>('image/webp');
   const [images, setImages] = useState<ImageItem[]>([]);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
@@ -103,18 +97,26 @@ export default function Home() {
     setIsProcessingBatch(false);
   };
 
-  // Perform single image canvas compression and telemetry calculation
-  const triggerSingleCompression = async (
-    id: string, 
-    file: File, 
-    currentSettings: CompressionSettings
-  ) => {
+  // Triggers single image conversion using the underlying compressor engine with target format settings
+  const triggerSingleConversion = async (id: string, file: File, format: TargetFormat) => {
     setImages(prev => prev.map(img => 
       img.id === id ? { ...img, status: 'compressing', errorMsg: null } : img
     ));
 
+    const conversionSettings: CompressionSettings = {
+      quality: 0.9, // High quality factor to ensure fidelity remains crystal clear
+      format: format,
+      resizeMode: 'none',
+      resizeValue: 100,
+      resizeWidth: 1024,
+      resizeHeight: 768,
+      lossless: format === 'image/png', // lossy for compression, lossless for PNG trans
+      preserveMetadata: true,
+      autoFormat: false
+    };
+
     try {
-      const result = await compressImage(file, currentSettings);
+      const result = await compressImage(file, conversionSettings);
       const optimizedUrl = URL.createObjectURL(result.blob);
       
       const reduction = ((result.blob.size - file.size) / file.size) * 100;
@@ -125,11 +127,9 @@ export default function Home() {
             URL.revokeObjectURL(img.compressedUrl);
           }
           
-          // Report savings to the global context stats
+          // Log stats count and size change
           const bytesSaved = file.size - result.blob.size;
-          if (bytesSaved > 0) {
-            addProcessedStat(bytesSaved);
-          }
+          addProcessedStat(bytesSaved > 0 ? bytesSaved : 0);
 
           return {
             ...img,
@@ -145,8 +145,8 @@ export default function Home() {
         return img;
       }));
     } catch (err) {
-      console.error("Compression error:", err);
-      const errMessage = err instanceof Error ? err.message : "Failed to parse format.";
+      console.error("Conversion error:", err);
+      const errMessage = err instanceof Error ? err.message : "Failed to convert format.";
       setImages(prev => prev.map(img => 
         img.id === id ? { 
           ...img, 
@@ -157,14 +157,14 @@ export default function Home() {
     }
   };
 
-  // Triggers batch compression on all idle items in list
-  const handleCompressAll = async () => {
+  // Triggers batch conversion on all idle items in list
+  const handleConvertAll = async () => {
     const targetItems = images.filter(img => img.status === 'idle' || img.status === 'error' || img.status === 'completed');
     if (targetItems.length === 0) return;
     
     setIsProcessingBatch(true);
     const promises = targetItems.map(img => 
-      triggerSingleCompression(img.id, img.file, settings)
+      triggerSingleConversion(img.id, img.file, targetFormat)
     );
 
     await Promise.all(promises);
@@ -174,7 +174,7 @@ export default function Home() {
   const handleRecompressSingle = (id: string) => {
     const item = images.find(img => img.id === id);
     if (item) {
-      triggerSingleCompression(id, item.file, settings);
+      triggerSingleConversion(id, item.file, targetFormat);
     }
   };
 
@@ -213,7 +213,7 @@ export default function Home() {
     const cleanOrigName = image.name.substring(0, image.name.lastIndexOf('.')) || image.name;
     const a = document.createElement('a');
     a.href = image.compressedUrl;
-    a.download = `${cleanOrigName}-optimized.${extension}`;
+    a.download = `${cleanOrigName}.${extension}`;
     a.click();
   };
 
@@ -231,7 +231,7 @@ export default function Home() {
         
         const extension = item.compressedType.split('/').pop() || 'png';
         const cleanOrigName = item.name.substring(0, item.name.lastIndexOf('.')) || item.name;
-        zip.file(`${cleanOrigName}-optimized.${extension}`, blob);
+        zip.file(`${cleanOrigName}.${extension}`, blob);
       }
 
       const content = await zip.generateAsync({ type: 'blob' });
@@ -239,7 +239,7 @@ export default function Home() {
 
       const a = document.createElement('a');
       a.href = mainZipUrl;
-      a.download = `optimized-images-${Date.now()}.zip`;
+      a.download = `converted-images-${Date.now()}.zip`;
       a.click();
       URL.revokeObjectURL(mainZipUrl);
     } catch (e) {
@@ -250,17 +250,6 @@ export default function Home() {
     }
   };
 
-  // Compile calculations
-  const totalOriginalSize = images.reduce((sum, img) => sum + img.originalSize, 0);
-  const totalCompressedSize = images.reduce((sum, img) => {
-    return sum + (img.compressedSize !== null ? img.compressedSize : img.originalSize);
-  }, 0);
-
-  const totalReductionRatio = totalOriginalSize > 0 
-    ? ((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100 
-    : 0;
-
-  const totalBytesSaved = Math.max(0, totalOriginalSize - totalCompressedSize);
   const activeImage = images.find(img => img.id === activePreviewId);
   const hasCompletedImages = images.some(img => img.status === 'completed');
 
@@ -271,31 +260,23 @@ export default function Home() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-905 pb-5">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            Image Compressor
+            Format Converter
             {isProcessingBatch && (
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             )}
           </h1>
+          <p className="text-xs text-slate-405 dark:text-slate-500 mt-1 leading-relaxed">
+            Choose a target format, drag your photos, and click "Convert All" to perform bulk offline conversion.
+          </p>
         </div>
+      </div>
 
-        {/* Quick Batch reduction stats */}
-        {hasCompletedImages && (
-          <div className="flex items-center gap-3 bg-white dark:bg-[#121315] p-3 py-2 rounded-xl border border-slate-200/60 dark:border-slate-900 shadow-[0_1px_3px_rgba(0,0,0,0.01)] shrink-0 self-start sm:self-auto">
-            <div className="text-right">
-              <span className="text-[9px] uppercase font-extrabold text-slate-400 dark:text-slate-555 block leading-none mb-1 tracking-wider">
-                Workspace Savings
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-emerald-650 dark:text-emerald-400 leading-none">
-                  {formatBytes(totalBytesSaved)}
-                </span>
-                <span className="text-[10px] font-mono leading-none text-slate-400 dark:text-slate-600">
-                  (-{totalReductionRatio.toFixed(0)}%)
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Target Format Selector controls */}
+      <div className="bg-white dark:bg-[#121315] border border-slate-200/60 dark:border-slate-900 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+        <ConverterControl 
+          targetFormat={targetFormat}
+          onChange={setTargetFormat}
+        />
       </div>
 
       {/* Upload Dragzone */}
@@ -314,22 +295,22 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              {/* Compress All Action Button (Required Workflow) */}
+              {/* Convert All Action Button (Required Workflow) */}
               <button
-                onClick={handleCompressAll}
+                onClick={handleConvertAll}
                 disabled={isProcessingBatch || images.length === 0}
-                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-35 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md select-none transition-all duration-150 active:scale-97"
-                title="Process compression on all items"
+                className="px-4 py-2 bg-emerald-655 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-35 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md select-none transition-all duration-150 active:scale-97"
+                title="Process conversion on all items in queue"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
-                Compress All
+                Convert All
               </button>
 
               <button
                 onClick={handleDownloadAllAsZip}
                 disabled={isProcessingBatch || !hasCompletedImages}
                 className="px-3.5 py-2 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 disabled:opacity-35 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs select-none transition-all duration-150"
-                title="Download all compressed items as a single zip"
+                title="Download all converted files as a zip archive"
               >
                 <FolderDown className="w-3.5 h-3.5" />
                 Download ZIP
@@ -339,7 +320,7 @@ export default function Home() {
                 onClick={handleClearAll}
                 disabled={isProcessingBatch}
                 className="px-3 py-2 border border-slate-200 dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-550 dark:text-slate-405 hover:text-red-500/90 dark:hover:text-red-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-150"
-                title="Clear all queue contents"
+                title="Clear conversion workspace queue"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Clear
@@ -370,26 +351,19 @@ export default function Home() {
         /* Empty canvas pristine state screen */
         <div className="py-20 text-center flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#121315]/10 border border-dashed border-slate-200 dark:border-slate-900 rounded-3xl">
           <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-[#121315] border border-slate-150 dark:border-slate-900/60 flex items-center justify-center text-slate-450 dark:text-slate-600 shrink-0">
-            <ImageIcon className="w-5 h-5 text-indigo-500" />
+            <RefreshCw className="w-5 h-5 text-emerald-500" />
           </div>
           <div className="max-w-xs">
             <span className="text-xs font-extrabold text-slate-800 dark:text-slate-350 block">
-              Workspace queue is empty
+              Conversion queue is empty
             </span>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
-              Drag PNG, JPEG, WEBP or AVIF files here, and click "Compress All" to begin.
+              Drag images here. Select target format above, and click "Convert All" to convert them in bulk.
             </p>
           </div>
         </div>
       )}
 
-      <footer className="border-t border-slate-100 dark:border-slate-900/60 py-5 mt-16 bg-white/40 dark:bg-[#121315]/10">
-        <div className="text-center">
-          <p className="text-[10px] text-slate-400 dark:text-slate-600 font-mono">
-            Designed simply. Processes offline locally via pure Canvas & buffer streams on your browser window sandbox.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
