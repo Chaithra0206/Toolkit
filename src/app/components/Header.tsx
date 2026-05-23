@@ -18,11 +18,25 @@ export default function Header() {
   const getPageTitle = () => {
     switch (pathname) {
       case '/':
+        return 'DASHBOARD';
+      case '/compressor':
         return 'IMAGE COMPRESSOR';
       case '/converter':
         return 'IMAGE CONVERTER';
+      case '/pdf/converter':
+        return 'PDF CONVERTER';
+      case '/pdf/merge':
+        return 'MERGE PDF';
+      case '/pdf/split':
+        return 'SPLIT PDF';
+      case '/pdf/compress':
+        return 'PDF COMPRESSOR';
+      case '/pdf/images-to-pdf':
+        return 'IMAGES TO PDF';
+      case '/settings':
+        return 'SETTINGS & DIAGNOSTICS';
       default:
-        return 'IMAGE TOOLKIT';
+        return 'FILE TOOLKIT';
     }
   };
 

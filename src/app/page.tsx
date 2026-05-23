@@ -5,381 +5,210 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { 
-  Trash2, 
-  Image as ImageIcon, 
-  FolderDown, 
-  Play
+  ImageIcon, 
+  RefreshCw, 
+  FileText, 
+  Layers, 
+  Scissors, 
+  ArrowDownToLine, 
+  ImagePlay, 
+  Settings, 
+  ShieldCheck, 
+  Cpu, 
+  HardDrive
 } from 'lucide-react';
-
-import { ImageItem, CompressionSettings } from './types';
-import { compressImage, formatBytes } from './utils/compressor';
-import DropZone from './components/DropZone';
-import ImageList from './components/ImageList';
-import SideBySidePreview from './components/SideBySidePreview';
 import { useApp } from './context/AppContext';
+import { formatBytes } from './utils/compressor';
 
-import JSZip from 'jszip';
+export default function DashboardPage() {
+  const { stats } = useApp();
 
-function createImageItem(file: File, objectUrl: string, width: number, height: number): ImageItem {
-  return {
-    id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-    name: file.name,
-    file: file,
-    originalType: file.type,
-    originalSize: file.size,
-    originalWidth: width,
-    originalHeight: height,
-    originalUrl: objectUrl,
-    compressedType: '',
-    compressedSize: null,
-    compressedWidth: null,
-    compressedHeight: null,
-    compressedUrl: null,
-    percentage: null,
-    status: 'idle',
-    errorMsg: null
-  };
-}
-
-export default function Home() {
-  const { addProcessedStat } = useApp();
-
-  // Internal default compression settings (80% quality, original format & size)
-  const [settings] = useState<CompressionSettings>({
-    quality: 0.8,
-    format: 'original',
-    resizeMode: 'none',
-    resizeValue: 100,
-    resizeWidth: 1024,
-    resizeHeight: 768,
-    lossless: false,
-    preserveMetadata: true,
-    autoFormat: false
-  });
-
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
-  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
-
-  // File drop event handler (inserts files in 'idle' state matching the workflow)
-  const handleFilesSelected = async (files: FileList | File[]) => {
-    const newItems: ImageItem[] = [];
-    setIsProcessingBatch(true);
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const objectUrl = URL.createObjectURL(file);
-      
-      let width = 0;
-      let height = 0;
-      try {
-        const dummyImg = new Image();
-        await new Promise<void>((resolve, reject) => {
-          dummyImg.onload = () => resolve();
-          dummyImg.onerror = () => reject();
-          dummyImg.src = objectUrl;
-        });
-        width = dummyImg.naturalWidth || dummyImg.width;
-        height = dummyImg.naturalHeight || dummyImg.height;
-      } catch {
-        console.warn("Could not determine image dimensions.");
-      }
-
-      const item = createImageItem(file, objectUrl, width, height);
-      newItems.push(item);
-    }
-
-    setImages(prev => {
-      const updated = [...prev, ...newItems];
-      if (newItems.length > 0) {
-        setActivePreviewId(newItems[0].id);
-      }
-      return updated;
-    });
-
-    setIsProcessingBatch(false);
-  };
-
-  // Perform single image canvas compression and telemetry calculation
-  const triggerSingleCompression = async (
-    id: string, 
-    file: File, 
-    currentSettings: CompressionSettings
-  ) => {
-    setImages(prev => prev.map(img => 
-      img.id === id ? { ...img, status: 'compressing', errorMsg: null } : img
-    ));
-
-    try {
-      const result = await compressImage(file, currentSettings);
-      const optimizedUrl = URL.createObjectURL(result.blob);
-      
-      const reduction = ((result.blob.size - file.size) / file.size) * 100;
-
-      setImages(prev => prev.map(img => {
-        if (img.id === id) {
-          if (img.compressedUrl) {
-            URL.revokeObjectURL(img.compressedUrl);
-          }
-          
-          // Report savings to the global context stats
-          const bytesSaved = file.size - result.blob.size;
-          if (bytesSaved > 0) {
-            addProcessedStat(bytesSaved);
-          }
-
-          return {
-            ...img,
-            compressedType: result.format,
-            compressedSize: result.blob.size,
-            compressedWidth: result.width,
-            compressedHeight: result.height,
-            compressedUrl: optimizedUrl,
-            percentage: parseFloat(reduction.toFixed(1)),
-            status: 'completed'
-          };
+  const toolCategories = [
+    {
+      title: "IMAGE OPTIMIZATION",
+      tools: [
+        {
+          name: "IMAGE COMPRESSOR",
+          description: "Reduce image file sizes up to 90% without losing quality. Support for JPEG, PNG, WEBP, and AVIF.",
+          href: "/compressor",
+          icon: ImageIcon,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "IMAGE CONVERTER",
+          description: "Batch convert images between JPEG, PNG, WEBP, and AVIF formats with custom dimensions.",
+          href: "/converter",
+          icon: RefreshCw,
+          color: "border-neutral-200 dark:border-neutral-800"
         }
-        return img;
-      }));
-    } catch (err) {
-      console.error("Compression error:", err);
-      const errMessage = err instanceof Error ? err.message : "Failed to parse format.";
-      setImages(prev => prev.map(img => 
-        img.id === id ? { 
-          ...img, 
-          status: 'error', 
-          errorMsg: errMessage 
-        } : img
-      ));
-    }
-  };
-
-  // Triggers batch compression on all idle items in list
-  const handleCompressAll = async () => {
-    const targetItems = images.filter(img => img.status === 'idle' || img.status === 'error' || img.status === 'completed');
-    if (targetItems.length === 0) return;
-    
-    setIsProcessingBatch(true);
-    const promises = targetItems.map(img => 
-      triggerSingleCompression(img.id, img.file, settings)
-    );
-
-    await Promise.all(promises);
-    setIsProcessingBatch(false);
-  };
-
-  const handleRecompressSingle = (id: string) => {
-    const item = images.find(img => img.id === id);
-    if (item) {
-      triggerSingleCompression(id, item.file, settings);
-    }
-  };
-
-  const handleRemoveImage = (id: string) => {
-    setImages(prev => {
-      const target = prev.find(img => img.id === id);
-      if (target) {
-        URL.revokeObjectURL(target.originalUrl);
-        if (target.compressedUrl) {
-          URL.revokeObjectURL(target.compressedUrl);
+      ]
+    },
+    {
+      title: "PDF SUITE",
+      tools: [
+        {
+          name: "PDF CONVERTER",
+          description: "Convert PDF documents to PNG, JPG, or raw Text. Batch extract pages instantly.",
+          href: "/pdf/converter",
+          icon: FileText,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "MERGE PDF",
+          description: "Merge multiple PDF documents into a single organized file. Reorder pages dynamically.",
+          href: "/pdf/merge",
+          icon: Layers,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "SPLIT PDF",
+          description: "Extract specific page ranges, split individual pages, or extract custom intervals.",
+          href: "/pdf/split",
+          icon: Scissors,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "PDF COMPRESSOR",
+          description: "Optimize and shrink PDF files client-side while preserving document fidelity.",
+          href: "/pdf/compress",
+          icon: ArrowDownToLine,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "IMAGES TO PDF",
+          description: "Convert images to PDF pages. Customize layout dimensions, margins, and orientation.",
+          href: "/pdf/images-to-pdf",
+          icon: ImagePlay,
+          color: "border-neutral-200 dark:border-neutral-800"
         }
-      }
-      const filtered = prev.filter(img => img.id !== id);
-      if (activePreviewId === id) {
-        setActivePreviewId(filtered.length > 0 ? filtered[0].id : null);
-      }
-      return filtered;
-    });
-  };
-
-  const handleClearAll = () => {
-    images.forEach(img => {
-      URL.revokeObjectURL(img.originalUrl);
-      if (img.compressedUrl) {
-        URL.revokeObjectURL(img.compressedUrl);
-      }
-    });
-    setImages([]);
-    setActivePreviewId(null);
-  };
-
-  const handleDownloadSingle = (image: ImageItem) => {
-    if (image.status !== 'completed' || !image.compressedUrl) return;
-    
-    const extension = image.compressedType.split('/').pop() || 'png';
-    const cleanOrigName = image.name.substring(0, image.name.lastIndexOf('.')) || image.name;
-    const a = document.createElement('a');
-    a.href = image.compressedUrl;
-    a.download = `${cleanOrigName}-optimized.${extension}`;
-    a.click();
-  };
-
-  const handleDownloadAllAsZip = async () => {
-    const completedItems = images.filter(img => img.status === 'completed' && img.compressedUrl);
-    if (completedItems.length === 0) return;
-
-    setIsProcessingBatch(true);
-    const zip = new JSZip();
-
-    try {
-      for (const item of completedItems) {
-        const response = await fetch(item.compressedUrl!);
-        const blob = await response.blob();
-        
-        const extension = item.compressedType.split('/').pop() || 'png';
-        const cleanOrigName = item.name.substring(0, item.name.lastIndexOf('.')) || item.name;
-        zip.file(`${cleanOrigName}-optimized.${extension}`, blob);
-      }
-
-      const content = await zip.generateAsync({ type: 'blob' });
-      const mainZipUrl = URL.createObjectURL(content);
-
-      const a = document.createElement('a');
-      a.href = mainZipUrl;
-      a.download = `optimized-images-${Date.now()}.zip`;
-      a.click();
-      URL.revokeObjectURL(mainZipUrl);
-    } catch (e) {
-      console.error("ZIP building failed:", e);
-      alert("Encountered error producing ZIP archive.");
-    } finally {
-      setIsProcessingBatch(false);
+      ]
     }
-  };
-
-  // Compile calculations
-  const totalOriginalSize = images.reduce((sum, img) => sum + img.originalSize, 0);
-  const totalCompressedSize = images.reduce((sum, img) => {
-    return sum + (img.compressedSize !== null ? img.compressedSize : img.originalSize);
-  }, 0);
-
-  const totalReductionRatio = totalOriginalSize > 0 
-    ? ((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100 
-    : 0;
-
-  const totalBytesSaved = Math.max(0, totalOriginalSize - totalCompressedSize);
-  const activeImage = images.find(img => img.id === activePreviewId);
-  const hasCompletedImages = images.some(img => img.status === 'completed');
+  ];
 
   return (
-    <div className="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+    <div className="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col gap-8 font-mono">
       
-      {/* Workspace Header layout */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
-        <div>
-          <h1 className="text-sm font-black tracking-widest text-black dark:text-white uppercase font-mono flex items-center gap-2 leading-none">
-            [ IMAGE COMPRESSOR ]
-            {isProcessingBatch && (
-              <span className="w-1.5 h-1.5 bg-black dark:bg-white animate-pulse" />
-            )}
-          </h1>
-        </div>
-
-        {/* Quick Batch reduction stats */}
-        {hasCompletedImages && (
-          <div className="flex items-center gap-3 bg-transparent p-3 py-1.5 border border-black dark:border-white rounded-none shadow-[none] shrink-0 self-start sm:self-auto font-mono text-[9px] tracking-widest text-black dark:text-white">
-            <div className="text-right">
-              <span className="font-extrabold block">SAVED: {formatBytes(totalBytesSaved)}</span>
-              <span className="block mt-0.5 opacity-60">REDUCTION: -{totalReductionRatio.toFixed(0)}%</span>
-            </div>
-          </div>
-        )}
+      {/* Hero Welcome Section */}
+      <div className="flex flex-col gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-6">
+        <h1 className="text-sm font-black tracking-widest text-black dark:text-white uppercase leading-none">
+          [ FILE TOOLKIT MAIN DASHBOARD ]
+        </h1>
+        <p className="text-[10px] text-neutral-450 dark:text-neutral-500 leading-relaxed max-w-xl tracking-wider">
+          Browser-native, offline file suite. Files are processed entirely in-memory using Web Assembly and local canvas buffers. No files are uploaded to servers.
+        </p>
       </div>
 
-      {/* Upload Dragzone */}
-      <DropZone onFilesSelected={handleFilesSelected} />
+      {/* Real-time Telemetry Stats Panel */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 border border-black dark:border-white p-4 gap-4 bg-transparent select-none">
+        <div className="flex flex-col gap-1 p-2">
+          <span className="text-[8px] font-extrabold text-neutral-450 dark:text-neutral-500 tracking-widest uppercase">
+            COMPLETED OPERATIONS
+          </span>
+          <span className="text-xl font-black text-black dark:text-white">
+            {stats.filesProcessed} <span className="text-[10px] font-normal opacity-50">FILES</span>
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 p-2 border-t sm:border-t-0 sm:border-l border-neutral-200 dark:border-neutral-800">
+          <span className="text-[8px] font-extrabold text-neutral-450 dark:text-neutral-500 tracking-widest uppercase">
+            LOCAL STORAGE SAVINGS
+          </span>
+          <span className="text-xl font-black text-black dark:text-white">
+            {formatBytes(stats.bytesSaved)}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 p-2 border-t sm:border-t-0 sm:border-l border-neutral-200 dark:border-neutral-800">
+          <span className="text-[8px] font-extrabold text-neutral-450 dark:text-neutral-500 tracking-widest uppercase">
+            SECURITY PROFILE
+          </span>
+          <span className="text-xl font-black text-green-600 dark:text-green-400 flex items-center gap-1.5 leading-none">
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            100% OFFLINE
+          </span>
+        </div>
+      </div>
 
-      {/* Queue Toolbar and Processing elements */}
-      {images.length > 0 ? (
-        <div className="flex flex-col gap-6 mt-2">
-          
-          {/* List action bars */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-3">
+      {/* Grid of Categories and Tool Cards */}
+      <div className="flex flex-col gap-8">
+        {toolCategories.map((category) => (
+          <div key={category.title} className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold font-mono tracking-widest text-neutral-400 dark:text-neutral-500 uppercase">
-                WORKSPACE QUEUE ({images.length} ITEMS)
+              <span className="text-[10px] font-black text-neutral-450 dark:text-neutral-500 tracking-widest">
+                // {category.title}
               </span>
+              <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-800" />
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto font-mono">
-              {/* Compress All Action Button (Required Workflow) */}
-              <button
-                onClick={handleCompressAll}
-                disabled={isProcessingBatch || images.length === 0}
-                className="px-4 py-2 bg-black hover:bg-neutral-900 dark:bg-white dark:hover:bg-neutral-100 disabled:opacity-35 text-white dark:text-black rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer shadow-xs select-none border border-black dark:border-white transition-all duration-100 active:scale-98"
-                title="Process compression on all items"
-              >
-                <Play className="w-3 h-3 fill-current" />
-                Compress All
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {category.tools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <motion.div
+                    key={tool.name}
+                    whileHover={{ scale: 0.99, borderColor: "#000" }}
+                    className="group border border-neutral-200 dark:border-neutral-800 p-5 rounded-none flex flex-col justify-between gap-4 transition-colors duration-100 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/50 relative overflow-hidden"
+                  >
+                    {/* Corner accent for hover indicator */}
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-black dark:border-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-black dark:text-white shrink-0 group-hover:border-black dark:group-hover:border-white transition-colors duration-150">
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <h3 className="text-xs font-black text-black dark:text-white tracking-widest uppercase">
+                          {tool.name}
+                        </h3>
+                      </div>
+                      <p className="text-[9px] text-neutral-450 dark:text-neutral-500 leading-relaxed tracking-wider mt-1">
+                        {tool.description}
+                      </p>
+                    </div>
 
-              <button
-                onClick={handleDownloadAllAsZip}
-                disabled={isProcessingBatch || !hasCompletedImages}
-                className="px-4 py-2 border border-black dark:border-white bg-transparent hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-20 text-black dark:text-white rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer select-none transition-all duration-100"
-                title="Download all compressed items as a single zip"
-              >
-                <FolderDown className="w-3 h-3" />
-                Download ZIP
-              </button>
-
-              <button
-                onClick={handleClearAll}
-                disabled={isProcessingBatch}
-                className="px-3 py-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-neutral-450 hover:text-black dark:hover:text-white rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer select-none transition-all duration-100"
-                title="Clear all queue contents"
-              >
-                <Trash2 className="w-3 h-3" />
-                Clear
-              </button>
+                    <div className="mt-2 self-start">
+                      <Link 
+                        href={tool.href}
+                        className="text-[9px] font-black text-black dark:text-white border border-black dark:border-white px-3 py-1 bg-transparent hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all uppercase duration-150 active:scale-95 flex items-center gap-1 cursor-pointer select-none"
+                      >
+                        Launch Module &rarr;
+                      </Link>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Interactive Comparison slider */}
-          {activeImage && activeImage.status === 'completed' && (
-            <SideBySidePreview 
-              image={activeImage}
-              onClose={() => setActivePreviewId(null)}
-            />
-          )}
-
-          {/* Image Files queue table list */}
-          <ImageList
-            images={images}
-            onRemove={handleRemoveImage}
-            onPreview={(img) => setActivePreviewId(img.id)}
-            onDownload={handleDownloadSingle}
-            onRecompressSingle={handleRecompressSingle}
-            activePreviewId={activePreviewId || undefined}
-          />
-
-        </div>
-      ) : (
-        /* Empty canvas pristine state screen */
-        <div className="py-24 text-center flex flex-col items-center justify-center gap-4 bg-transparent border border-dashed border-neutral-200 dark:border-neutral-800 rounded-none font-mono">
-          <div className="w-10 h-10 border border-black dark:border-white flex items-center justify-center text-black dark:text-white shrink-0">
-            <ImageIcon className="w-4 h-4" />
+      {/* Technical Specifications telemetry section */}
+      <div className="border border-neutral-200 dark:border-neutral-800 p-4 flex flex-col gap-3 mt-4">
+        <span className="text-[9px] font-black text-black dark:text-white tracking-widest uppercase flex items-center gap-1.5">
+          <Cpu className="w-3.5 h-3.5 text-neutral-450" />
+          SYSTEM SPECIFICATIONS
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[8px] text-neutral-450 dark:text-neutral-500 tracking-wider">
+          <div>
+            <span className="block font-bold uppercase">ENGINE STATUS:</span>
+            <span className="block font-extrabold text-green-600 dark:text-green-400 mt-0.5">STANDBY / LOCAL</span>
           </div>
-          <div className="max-w-xs">
-            <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest block">
-              [ QUEUE IS EMPTY ]
-            </span>
-            <p className="text-[9px] text-neutral-400 dark:text-neutral-500 mt-2 leading-relaxed tracking-wider">
-              Drag photo files here. Click "Compress All" to batch compress files offline.
-            </p>
+          <div>
+            <span className="block font-bold uppercase">MEMORY FOOTPRINT:</span>
+            <span className="block font-extrabold text-black dark:text-white mt-0.5">&lt; 10 MB STANDBY</span>
+          </div>
+          <div>
+            <span className="block font-bold uppercase">SANDBOX ISOLATION:</span>
+            <span className="block font-extrabold text-black dark:text-white mt-0.5">ACTIVE</span>
+          </div>
+          <div>
+            <span className="block font-bold uppercase">FRAMEWORK:</span>
+            <span className="block font-extrabold text-black dark:text-white mt-0.5">NEXT.JS 16 / CLIENT-SIDE</span>
           </div>
         </div>
-      )}
-
-      <footer className="border-t border-neutral-200 dark:border-neutral-800 py-5 mt-16 bg-transparent font-mono">
-        <div className="text-center">
-          <p className="text-[9px] text-neutral-400 dark:text-neutral-600 tracking-wider">
-            LOCAL ENGINE: PROCESSES VIA BROWSER CANVAS BUFFER CHUNKS.
-          </p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }
