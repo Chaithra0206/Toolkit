@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+'use client';
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImageItem } from '../types';
@@ -27,7 +29,7 @@ export default function ImageList({
   activePreviewId
 }: ImageListProps) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3 font-mono">
       <AnimatePresence initial={false}>
         {images.map((img) => {
           const isSelected = img.id === activePreviewId;
@@ -35,9 +37,7 @@ export default function ImageList({
           const compSize = img.compressedSize ? formatBytes(img.compressedSize) : '';
           
           let pctStr = '';
-          let isSaving = true;
           if (img.percentage !== null) {
-            isSaving = img.percentage <= 0;
             pctStr = img.percentage <= 0 
               ? `${img.percentage.toFixed(0)}%`
               : `+${img.percentage.toFixed(0)}%`;
@@ -48,75 +48,71 @@ export default function ImageList({
           return (
             <motion.div
               key={img.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.15 }}
-              className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-150 bg-white dark:bg-[#121315] ${
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+              className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border transition-all duration-100 rounded-none bg-transparent ${
                 isSelected 
                   ? 'border-black dark:border-white ring-1 ring-black dark:ring-white' 
-                  : 'border-slate-200/60 dark:border-slate-800/80 hover:border-slate-400 dark:hover:border-slate-600'
+                  : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-450 dark:hover:border-neutral-600'
               }`}
             >
-              {/* Left Segment: Thumbnail and basic measurements */}
-              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              {/* Left Segment: Thumbnail and dimensions */}
+              <div className="flex items-center gap-4 min-w-0 flex-1">
                 <div 
-                  className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 shrink-0 cursor-pointer"
+                  className="relative w-12 h-12 overflow-hidden bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shrink-0 cursor-pointer rounded-none"
                   onClick={() => onPreview(img)}
                 >
                   <img
                     src={img.originalUrl}
                     alt={img.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover grayscale opacity-90 hover:grayscale-0 duration-150"
                     referrerPolicy="no-referrer"
                   />
-                  <span className="absolute bottom-0 right-0 bg-black/80 text-[8px] font-bold text-white px-1 py-0.5 rounded-tl font-mono">
+                  <span className="absolute bottom-0 right-0 bg-black text-[7px] font-black text-white px-1.5 py-0.5 font-mono select-none uppercase tracking-wider">
                     {fileExtension}
                   </span>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 leading-tight">
                   <span 
-                    className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate cursor-pointer hover:underline" 
+                    className="text-[11px] font-black text-black dark:text-white block truncate cursor-pointer hover:underline uppercase tracking-wide" 
                     title={img.name}
                     onClick={() => onPreview(img)}
                   >
                     {img.name}
                   </span>
                   
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px] text-slate-450 dark:text-slate-500 font-medium">
-                    <span className="font-mono">{origSize}</span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[9px] text-neutral-450 dark:text-neutral-500 font-bold select-none tracking-widest uppercase">
+                    <span>{origSize}</span>
                     {img.originalWidth && img.originalHeight && (
-                      <span>• {img.originalWidth}x{img.originalHeight}</span>
+                      <span>• {img.originalWidth}x{img.originalHeight} PX</span>
                     )}
                     {img.status === 'completed' && img.compressedWidth && img.compressedHeight && (
-                      <span className="text-slate-400 dark:text-slate-600">
-                        ➔ {img.compressedWidth}x{img.compressedHeight}
+                      <span className="text-black dark:text-white">
+                        ➔ {img.compressedWidth}x{img.compressedHeight} PX
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Middle Segment: Compression metrics and savings percentage */}
-              <div className="flex items-center gap-4 shrink-0 justify-between md:justify-end">
+              {/* Middle Segment: Compression metrics */}
+              <div className="flex items-center gap-4 shrink-0 justify-between md:justify-end select-none">
                 {img.status === 'completed' && img.compressedSize !== null && (
-                  <div className="flex items-center gap-2.5">
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-none font-medium mb-1">
-                        Optimized Size
+                  <div className="flex items-center gap-3">
+                    <div className="text-right leading-none">
+                      <span className="text-[8px] text-neutral-400 dark:text-neutral-550 block font-bold uppercase tracking-wider mb-1">
+                        OPTIMIZED
                       </span>
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono leading-none">
+                      <span className="text-[11px] font-black text-black dark:text-white font-mono block">
                         {compSize}
                       </span>
                     </div>
                     
-                    {/* Savings pill indicator */}
-                    <div className={`px-2 py-1 rounded-lg font-mono text-[10px] font-extrabold leading-none ${
-                      isSaving 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                    }`}>
+                    {/* Savings Monochrome Pill */}
+                    <div className="border border-black dark:border-white px-2 py-1 font-mono text-[9px] font-extrabold leading-none text-black dark:text-white">
                       {pctStr}
                     </div>
                   </div>
@@ -124,39 +120,38 @@ export default function ImageList({
 
                 {/* Progress / Error / Idle states representation */}
                 {img.status === 'compressing' && (
-                  <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                  <div className="flex items-center gap-2 text-black dark:text-white font-extrabold uppercase">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span className="text-[10px] font-bold font-mono">Compressing...</span>
+                    <span className="text-[9px] tracking-widest">[ PROCESSING... ]</span>
                   </div>
                 )}
 
                 {img.status === 'error' && (
-                  <div className="flex items-center gap-1.5 text-red-500/90 dark:text-red-400" title={img.errorMsg || 'Failed to compress'}>
+                  <div className="flex items-center gap-1.5 text-black dark:text-white font-extrabold uppercase" title={img.errorMsg || 'Failed'}>
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold">Failed</span>
+                    <span className="text-[9px] tracking-widest">[ FAILED ]</span>
                   </div>
                 )}
 
                 {img.status === 'idle' && (
-                  <div className="flex items-center gap-1.5 text-slate-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 animate-pulse" />
-                    <span className="text-[10px] font-medium font-mono">In Queue</span>
+                  <div className="flex items-center gap-1.5 text-neutral-400 dark:text-neutral-500 font-extrabold uppercase">
+                    <span className="text-[9px] tracking-widest">[ QUEUED ]</span>
                   </div>
                 )}
               </div>
 
               {/* Right Segment: Action controls */}
-              <div className="flex items-center gap-1.5 justify-end border-t md:border-t-0 pt-2.5 md:pt-0 border-slate-100 dark:border-slate-900 shrink-0">
+              <div className="flex items-center gap-1.5 justify-end border-t md:border-t-0 pt-2.5 md:pt-0 border-neutral-100 dark:border-neutral-900 shrink-0 font-mono">
                 
                 {/* Visual Preview Trigger */}
                 <button
                   type="button"
                   onClick={() => onPreview(img)}
                   disabled={img.status !== 'completed'}
-                  className={`p-1.5 rounded-lg border transition-all cursor-pointer select-none ${
+                  className={`p-2 border transition-all cursor-pointer select-none rounded-none ${
                     isSelected 
                       ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
-                      : 'border-slate-200/50 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100 text-slate-500 dark:text-slate-400 disabled:opacity-20 disabled:pointer-events-none'
+                      : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 hover:text-black dark:hover:text-white text-neutral-450 disabled:opacity-20 disabled:pointer-events-none'
                   }`}
                   title="Compare Side-by-Side"
                 >
@@ -168,7 +163,7 @@ export default function ImageList({
                   type="button"
                   onClick={() => onDownload(img)}
                   disabled={img.status !== 'completed'}
-                  className="p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-550 dark:text-slate-405 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-20 disabled:pointer-events-none cursor-pointer select-none transition-all"
+                  className="p-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-neutral-450 hover:text-black dark:hover:text-white disabled:opacity-20 disabled:pointer-events-none cursor-pointer select-none transition-all rounded-none"
                   title="Download Optimized File"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -179,8 +174,8 @@ export default function ImageList({
                   type="button"
                   onClick={() => onRecompressSingle(img.id)}
                   disabled={img.status === 'compressing'}
-                  className="p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-550 dark:text-slate-405 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-20 disabled:pointer-events-none cursor-pointer select-none transition-all"
-                  title="Recompress / Apply current settings"
+                  className="p-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-neutral-450 hover:text-black dark:hover:text-white disabled:opacity-20 disabled:pointer-events-none cursor-pointer select-none transition-all rounded-none"
+                  title="Re-run process"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
@@ -189,8 +184,8 @@ export default function ImageList({
                 <button
                   type="button"
                   onClick={() => onRemove(img.id)}
-                  className="p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-800/80 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-500 dark:text-slate-400 hover:text-red-500/90 dark:hover:text-red-400 cursor-pointer select-none transition-all"
-                  title="Remove from workspace"
+                  className="p-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-neutral-450 hover:text-red-500 cursor-pointer select-none transition-all rounded-none"
+                  title="Remove from queue"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

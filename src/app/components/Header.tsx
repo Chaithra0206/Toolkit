@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Menu, Sun, Moon, Sparkles, HardDrive } from 'lucide-react';
+import { Menu, Sun, Moon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatBytes } from '../utils/compressor';
 
@@ -15,62 +15,55 @@ export default function Header() {
   const pathname = usePathname();
   const { toggleTheme, theme, setSidebarOpen, stats } = useApp();
 
-  // Route path resolver for header title
   const getPageTitle = () => {
     switch (pathname) {
       case '/':
-        return 'Image Compressor';
+        return 'IMAGE COMPRESSOR';
       case '/converter':
-        return 'Image Converter';
+        return 'IMAGE CONVERTER';
       default:
-        return 'Image Toolkit';
+        return 'IMAGE TOOLKIT';
     }
   };
 
   return (
-    <header className="h-16 w-full bg-white/80 dark:bg-[#0c0d0e]/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-900/80 fixed top-0 right-0 left-0 md:left-72 z-30 px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
+    <header className="h-16 w-full bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 fixed top-0 right-0 left-0 md:left-72 z-30 px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
       {/* Left side: Mobile menu toggle and title */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-xl border border-slate-200/50 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-650 dark:text-slate-400 md:hidden cursor-pointer"
+          className="p-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-black dark:text-white md:hidden cursor-pointer rounded-none"
           title="Toggle Navigation Menu"
         >
           <Menu className="w-4 h-4" />
         </button>
 
-        <h2 className="text-sm sm:text-base font-black tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-xs font-black tracking-widest text-black dark:text-white uppercase font-mono">
           {getPageTitle()}
         </h2>
       </div>
 
-      {/* Right side: Session statistics & Dark mode toggle */}
-      <div className="flex items-center gap-3">
-        {/* Dynamic telemetry stats visible across pages */}
+      {/* Right side: Session stats & Theme Switcher */}
+      <div className="flex items-center gap-4">
+        {/* Dynamic telemetry stats stylized as raw monospace telemetry */}
         {stats.filesProcessed > 0 && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-905 border border-slate-200/50 dark:border-slate-800/80 rounded-xl">
-            <div className="w-5 h-5 rounded bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <HardDrive className="w-3 h-3" />
-            </div>
-            <div className="text-[10px] leading-none">
-              <span className="text-slate-400 dark:text-slate-550 block font-bold uppercase tracking-wider scale-90 origin-left">Saved Session</span>
-              <span className="font-mono font-bold text-emerald-650 dark:text-emerald-400 block mt-0.5">
-                {formatBytes(stats.bytesSaved)} ({stats.filesProcessed} files)
-              </span>
-            </div>
+          <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 border border-black dark:border-white bg-transparent rounded-none font-mono text-[9px] tracking-widest text-black dark:text-white select-none">
+            <span className="font-extrabold">SAVED: {formatBytes(stats.bytesSaved)}</span>
+            <span className="opacity-30">/</span>
+            <span className="opacity-70">{stats.filesProcessed} FILES</span>
           </div>
         )}
 
         {/* Theme Switcher Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-xl border border-slate-200/50 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-650 dark:text-slate-400 cursor-pointer transition-all duration-200"
+          className="p-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-black dark:text-white cursor-pointer transition-all duration-150 rounded-none"
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400 fill-amber-400/10" />
+            <Sun className="w-3.5 h-3.5" />
           ) : (
-            <Moon className="w-4 h-4 text-indigo-650 fill-indigo-650/10" />
+            <Moon className="w-3.5 h-3.5" />
           )}
         </button>
       </div>

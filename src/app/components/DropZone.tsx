@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+'use client';
+
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Clipboard, AlertCircle } from 'lucide-react';
@@ -75,7 +77,7 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
     }
 
     if (invalidTypes.length > 0) {
-      setErrorText(`Some files were skipped as they are not valid images: ${invalidTypes.join(', ')}`);
+      setErrorText(`Unsupported items: ${invalidTypes.join(', ')}`);
       setTimeout(() => setErrorText(null), 6000);
     }
 
@@ -95,7 +97,6 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
-            // Give names to pasted images if generic
             const namedFile = new File([file], `pasted-image-${Date.now()}-${i + 1}.png`, {
               type: file.type
             });
@@ -119,20 +120,20 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
   }, [onFilesSelected]);
 
   return (
-    <div className="w-full">
+    <div className="w-full font-mono">
       <motion.div
         id="dropzone"
-        whileHover={{ scale: 1.005 }}
-        whileTap={{ scale: 0.995 }}
+        whileHover={{ scale: 1.002 }}
+        whileTap={{ scale: 0.998 }}
         onDragEnter={handleDrag}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
         onClick={triggerFileInput}
-        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[220px] ${
+        className={`relative group cursor-pointer border border-dashed text-center transition-all duration-150 flex flex-col items-center justify-center min-h-[220px] rounded-none ${
           isDragActive 
-            ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 shadow-lg shadow-indigo-500/15' 
-            : 'border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-indigo-400 dark:hover:border-indigo-500/80 hover:bg-slate-50/50 dark:hover:bg-slate-900'
+            ? 'border-black dark:border-white bg-neutral-50 dark:bg-neutral-900/40 shadow-[none]' 
+            : 'border-neutral-300 dark:border-neutral-800 bg-transparent hover:border-black dark:hover:border-white hover:bg-neutral-50/20 dark:hover:bg-neutral-950/20'
         }`}
       >
         <input
@@ -145,67 +146,45 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
         />
 
         {showClipboardPulse && (
-          <div className="absolute inset-0 bg-green-500/10 dark:bg-green-500/5 rounded-2xl flex items-center justify-center animate-pulse border border-green-500 pointer-events-none">
-            <div className="bg-green-600 text-white font-medium px-4 py-2 rounded-full text-sm shadow-md flex items-center gap-1.5">
-              <Clipboard className="w-4 h-4 text-white" />
-              Pasted Image from Clipboard!
+          <div className="absolute inset-0 bg-neutral-100/10 dark:bg-neutral-900/10 flex items-center justify-center animate-pulse border border-black dark:border-white pointer-events-none">
+            <div className="bg-black text-white dark:bg-white dark:text-black font-extrabold px-5 py-2.5 rounded-none text-xs border border-white dark:border-black shadow-md flex items-center gap-2 tracking-widest uppercase">
+              <Clipboard className="w-4 h-4" />
+              Pasted Image Captured!
             </div>
           </div>
         )}
 
         {/* Visual indicators design */}
-        <div className="flex flex-col items-center gap-4 max-w-md">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center duration-300 ${
+        <div className="flex flex-col items-center gap-4 max-w-md p-6">
+          <div className={`w-10 h-10 border flex items-center justify-center transition-colors duration-150 rounded-none ${
             isDragActive 
-              ? 'bg-indigo-500 text-white' 
-              : 'bg-indigo-50 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 group-hover:scale-110'
+              ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black' 
+              : 'border-neutral-300 dark:border-neutral-800 text-black dark:text-white'
           }`}>
-            <Upload className="w-6 h-6" />
+            <Upload className="w-4 h-4" />
           </div>
 
           <div>
-            <span className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 block">
-              Drag & drop your images here
+            <span className="text-xs font-black text-black dark:text-white uppercase tracking-widest block leading-none">
+              DRAG & DROP IMAGE FILE(S) HERE
             </span>
-            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block mt-1">
-              or <span className="text-indigo-600 dark:text-indigo-400 group-hover:underline font-medium">browse from your computer</span>
+            <span className="text-[9px] text-neutral-450 dark:text-neutral-500 block mt-2 tracking-wider">
+              OR CLICK TO BROWSE COMPUTER
             </span>
           </div>
 
           {/* Quick specs section */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              JPG/JPEG
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              PNG
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              WEBP
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              AVIF
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              GIF
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              BMP
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              TIFF
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              SVG
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              HEIC
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 select-none">
+            {['JPG', 'PNG', 'WEBP', 'AVIF', 'GIF', 'HEIC'].map(fmt => (
+              <span key={fmt} className="px-2 py-1 border border-neutral-200 dark:border-neutral-800 text-[8px] font-extrabold text-neutral-400 dark:text-neutral-500 rounded-none bg-transparent">
+                {fmt}
+              </span>
+            ))}
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 mt-2 hover:text-slate-500">
-            <Clipboard className="w-3.5 h-3.5" />
-            <span>Pasting images directly with <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px] font-mono">Ctrl+V</kbd> or <kbd className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px] font-mono">⌘+V</kbd> is supported!</span>
+          <div className="flex items-center gap-1.5 text-[9px] text-neutral-400 dark:text-neutral-550 mt-3 select-none leading-none tracking-wide">
+            <Clipboard className="w-3 h-3 shrink-0" />
+            <span>Pasting with <kbd className="border border-neutral-250 dark:border-neutral-700 px-1 py-0.5 text-[8px]">Ctrl+V</kbd> or <kbd className="border border-neutral-250 dark:border-neutral-700 px-1 py-0.5 text-[8px]">⌘+V</kbd> supported</span>
           </div>
         </div>
       </motion.div>
@@ -213,10 +192,10 @@ export default function DropZone({ onFilesSelected }: DropZoneProps) {
       {errorText && (
         <motion.div
           id="dropzone-error"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="mt-3 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-xl border border-red-100 dark:border-red-900/30 font-medium"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="mt-3 flex items-start gap-2 p-3 bg-transparent border border-black dark:border-white text-black dark:text-white text-[9px] tracking-wider rounded-none font-bold uppercase"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{errorText}</span>

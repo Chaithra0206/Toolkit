@@ -6,18 +6,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trash2, 
   RefreshCw, 
   FolderDown, 
-  Play,
-  CheckCircle,
-  Sparkles
+  Play
 } from 'lucide-react';
 
 import { ImageItem, CompressionSettings } from '../types';
-import { compressImage, formatBytes } from '../utils/compressor';
+import { compressImage } from '../utils/compressor';
 import DropZone from '../components/DropZone';
 import ConverterControl from '../components/ConverterControl';
 import ImageList from '../components/ImageList';
@@ -257,22 +254,19 @@ export default function ConverterPage() {
     <div className="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
       
       {/* Workspace Header layout */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-905 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            Format Converter
+          <h1 className="text-sm font-black tracking-widest text-slate-900 dark:text-white uppercase font-mono flex items-center gap-2 leading-none">
+            [ IMAGE CONVERTER ]
             {isProcessingBatch && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 bg-black dark:bg-white animate-pulse" />
             )}
           </h1>
-          <p className="text-xs text-slate-405 dark:text-slate-500 mt-1 leading-relaxed">
-            Choose a target format, drag your photos, and click "Convert All" to perform bulk offline conversion.
-          </p>
         </div>
       </div>
 
       {/* Target Format Selector controls */}
-      <div className="bg-white dark:bg-[#121315] border border-slate-200/60 dark:border-slate-900 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+      <div className="bg-transparent border border-neutral-200 dark:border-neutral-800 p-5 rounded-none shadow-[none]">
         <ConverterControl 
           targetFormat={targetFormat}
           onChange={setTargetFormat}
@@ -287,42 +281,42 @@ export default function ConverterPage() {
         <div className="flex flex-col gap-6 mt-2">
           
           {/* List action bars */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-905 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                Workspace queue ({images.length} items)
+              <span className="text-[10px] font-bold font-mono tracking-widest text-neutral-450 dark:text-neutral-500 uppercase">
+                WORKSPACE QUEUE ({images.length} ITEMS)
               </span>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-2 self-end sm:self-auto font-mono">
               {/* Convert All Action Button (Required Workflow) */}
               <button
                 onClick={handleConvertAll}
                 disabled={isProcessingBatch || images.length === 0}
-                className="px-4 py-2 bg-emerald-655 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-35 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md select-none transition-all duration-150 active:scale-97"
+                className="px-4 py-2 bg-black hover:bg-neutral-900 dark:bg-white dark:hover:bg-neutral-100 disabled:opacity-35 text-white dark:text-black rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer shadow-xs select-none border border-black dark:border-white transition-all duration-100 active:scale-98"
                 title="Process conversion on all items in queue"
               >
-                <Play className="w-3.5 h-3.5 fill-current" />
+                <Play className="w-3 h-3 fill-current" />
                 Convert All
               </button>
 
               <button
                 onClick={handleDownloadAllAsZip}
                 disabled={isProcessingBatch || !hasCompletedImages}
-                className="px-3.5 py-2 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 disabled:opacity-35 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs select-none transition-all duration-150"
+                className="px-4 py-2 border border-black dark:border-white bg-transparent hover:bg-neutral-50 dark:hover:bg-neutral-900 disabled:opacity-20 text-black dark:text-white rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer select-none transition-all duration-100"
                 title="Download all converted files as a zip archive"
               >
-                <FolderDown className="w-3.5 h-3.5" />
+                <FolderDown className="w-3 h-3" />
                 Download ZIP
               </button>
 
               <button
                 onClick={handleClearAll}
                 disabled={isProcessingBatch}
-                className="px-3 py-2 border border-slate-200 dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-550 dark:text-slate-405 hover:text-red-500/90 dark:hover:text-red-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-150"
+                className="px-3 py-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-neutral-450 hover:text-black dark:hover:text-white rounded-none text-[9px] tracking-widest font-extrabold uppercase flex items-center gap-1.5 cursor-pointer select-none transition-all duration-100"
                 title="Clear conversion workspace queue"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3 h-3" />
                 Clear
               </button>
             </div>
@@ -349,21 +343,28 @@ export default function ConverterPage() {
         </div>
       ) : (
         /* Empty canvas pristine state screen */
-        <div className="py-20 text-center flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#121315]/10 border border-dashed border-slate-200 dark:border-slate-900 rounded-3xl">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-[#121315] border border-slate-150 dark:border-slate-900/60 flex items-center justify-center text-slate-450 dark:text-slate-600 shrink-0">
-            <RefreshCw className="w-5 h-5 text-emerald-500" />
+        <div className="py-24 text-center flex flex-col items-center justify-center gap-4 bg-transparent border border-dashed border-neutral-200 dark:border-neutral-800 rounded-none font-mono">
+          <div className="w-10 h-10 border border-black dark:border-white flex items-center justify-center text-black dark:text-white shrink-0">
+            <RefreshCw className="w-4 h-4" />
           </div>
           <div className="max-w-xs">
-            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-350 block">
-              Conversion queue is empty
+            <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest block">
+              [ QUEUE IS EMPTY ]
             </span>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
+            <p className="text-[9px] text-neutral-400 dark:text-neutral-500 mt-2 leading-relaxed tracking-wider">
               Drag images here. Select target format above, and click "Convert All" to convert them in bulk.
             </p>
           </div>
         </div>
       )}
 
+      <footer className="border-t border-neutral-200 dark:border-neutral-800 py-5 mt-16 bg-transparent font-mono">
+        <div className="text-center">
+          <p className="text-[9px] text-neutral-400 dark:text-neutral-600 tracking-wider">
+            LOCAL ENGINE: PROCESSES VIA BROWSER CANVAS BUFFER CHUNKS.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
