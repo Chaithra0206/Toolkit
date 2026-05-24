@@ -18,7 +18,11 @@ import {
   ArrowDownToLine, 
   ImagePlay, 
   Settings,
-  X
+  X,
+  Video,
+  Film,
+  Sliders,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -48,6 +52,15 @@ export default function Sidebar() {
         { name: 'SPLIT PDF', href: '/pdf/split', icon: Scissors },
         { name: 'PDF COMPRESSOR', href: '/pdf/compress', icon: ArrowDownToLine },
         { name: 'IMAGES TO PDF', href: '/pdf/images-to-pdf', icon: ImagePlay },
+      ]
+    },
+    {
+      title: 'VIDEO TOOLS',
+      items: [
+        { name: 'VIDEO COMPRESSOR', href: '/video/compressor', icon: Video },
+        { name: 'VIDEO CONVERTER', href: '/video/converter', icon: RefreshCw },
+        { name: 'VIDEO TRIMMER', href: '/video/trimmer', icon: Sliders },
+        { name: 'GIF MAKER', href: '/video/gif-maker', icon: Film },
       ]
     },
     {

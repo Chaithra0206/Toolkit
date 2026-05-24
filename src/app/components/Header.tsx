@@ -33,6 +33,14 @@ export default function Header() {
         return 'PDF COMPRESSOR';
       case '/pdf/images-to-pdf':
         return 'IMAGES TO PDF';
+      case '/video/compressor':
+        return 'VIDEO COMPRESSOR';
+      case '/video/converter':
+        return 'VIDEO CONVERTER';
+      case '/video/trimmer':
+        return 'VIDEO TRIMMER';
+      case '/video/gif-maker':
+        return 'GIF MAKER';
       case '/settings':
         return 'SETTINGS & DIAGNOSTICS';
       default:

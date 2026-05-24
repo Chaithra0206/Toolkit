@@ -19,7 +19,10 @@ import {
   Settings, 
   ShieldCheck, 
   Cpu, 
-  HardDrive
+  HardDrive,
+  Video,
+  Film,
+  Sliders
 } from 'lucide-react';
 import { useApp } from './context/AppContext';
 import { formatBytes } from './utils/compressor';
@@ -83,6 +86,39 @@ export default function DashboardPage() {
           description: "Convert images to PDF pages. Customize layout dimensions, margins, and orientation.",
           href: "/pdf/images-to-pdf",
           icon: ImagePlay,
+          color: "border-neutral-200 dark:border-neutral-800"
+        }
+      ]
+    },
+    {
+      title: "VIDEO TOOLS",
+      tools: [
+        {
+          name: "VIDEO COMPRESSOR",
+          description: "Compress video files fully offline using FFmpeg WebAssembly. Preserve quality with visual presets.",
+          href: "/video/compressor",
+          icon: Video,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "VIDEO CONVERTER",
+          description: "Convert videos between MP4, MOV, WEBM, AVI, and animated GIFs without server uploads.",
+          href: "/video/converter",
+          icon: RefreshCw,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "VIDEO TRIMMER",
+          description: "Trim start and end ranges using timeline range sliders with real-time browser preview.",
+          href: "/video/trimmer",
+          icon: Sliders,
+          color: "border-neutral-200 dark:border-neutral-800"
+        },
+        {
+          name: "GIF MAKER",
+          description: "Transform video sequences into lightweight, looping animated GIFs with custom FPS and scale settings.",
+          href: "/video/gif-maker",
+          icon: Film,
           color: "border-neutral-200 dark:border-neutral-800"
         }
       ]
