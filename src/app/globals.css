@@ -1,7 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
 
 @import "tailwindcss";
 
@@ -48,7 +44,7 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 0px; /* Human-designed brutalist square knob */
+  border-radius: 0px;
   background: currentColor;
   cursor: pointer;
   border: 1px solid currentColor;
